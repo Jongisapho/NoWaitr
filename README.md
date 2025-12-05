@@ -25,21 +25,21 @@
 | **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling
 
 ## 👨🏻‍💻 How to Run the project
-**Clone the repository**
+**1️⃣Clone the repository**
 - git clone <your-repo-url>
 - cd <repo-name>
 
-**Start Postgres via Docker**
+**2️⃣Start Postgres via Docker**
 - docker-compose up -d
 
-**Backend**
+**3️⃣Backend**
 - cd packages/backend
 - npm install
 - npx prisma generate
 - npx prisma migrate dev --name init
 - npm run dev
 
-**Frontend**
+**4️⃣Frontend**
 - cd packages/frontend
 - npm install
 - npm run dev
