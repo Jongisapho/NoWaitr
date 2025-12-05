@@ -1,0 +1,37 @@
+generator client {
+provider = "prisma-client-js"
+}
+
+
+datasource db {
+provider = "postgresql"
+url = env("DATABASE_URL")
+}
+
+
+model Venue {
+id Int @id @default(autoincrement())
+name String
+queues Queue[]
+}
+
+
+model Queue {
+id Int @id @default(autoincrement())
+name String
+venue Venue? @relation(fields: [venueId], references: [id])
+venueId Int?
+items QueueItem[]
+createdAt DateTime @default(now())
+}
+
+
+model QueueItem {
+id Int @id @default(autoincrement())
+queue Queue @relation(fields: [queueId], references: [id])
+queueId Int
+userName String
+position Int
+status String @default("waiting") // waiting | served | canceled
+joinedAt DateTime @default(now())
+}
