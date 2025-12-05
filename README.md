@@ -28,14 +28,17 @@
 **Clone the repository**
 - git clone <your-repo-url>
 - cd <repo-name>
+
 **Start Postgres via Docker**
 - docker-compose up -d
+
 **Backend**
 - cd packages/backend
 - npm install
 - npx prisma generate
 - npx prisma migrate dev --name init
 - npm run dev
+
 **Frontend**
 - cd packages/frontend
 - npm install
