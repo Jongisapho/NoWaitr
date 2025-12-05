@@ -23,3 +23,20 @@
 |-----------------------|---------------------------------------|----------------------------------------
 | **Frontend**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/react/react.png" width="24"/> React      | Interactive dashboards & visualization |
 | **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling
+
+## 👨🏻‍💻 How to Run the project
+**Clone the repository**
+- git clone <your-repo-url>
+- cd <repo-name>
+**Start Postgres via Docker**
+- docker-compose up -d
+**Backend**
+- cd packages/backend
+- npm install
+- npx prisma generate
+- npx prisma migrate dev --name init
+- npm run dev
+**Frontend**
+- cd packages/frontend
+- npm install
+- npm run dev
