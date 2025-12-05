@@ -17,3 +17,9 @@
   - Backend APIs to manage queues, items, and venue information.
 - **Admin Interface**:
   - Staff can manage queues and view analytics (planned).
+
+## ⚗️ Technologies Used
+| Component             | Technology / Framework                | Justification
+|-----------------------|---------------------------------------|----------------------------------------
+| **Frontend**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/react/react.png" width="24"/> React      | Interactive dashboards & visualization |
+| **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling
