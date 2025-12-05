@@ -13,7 +13,7 @@ export async function createQueue(req: Request, res: Response){
 
 export async function getQueue(req: Request, res: Response){
     const id = Number(req.params.id);
-    const q = await prisma.queue.findUnique({ where: { id }, Include: {items: true } });
+    const q = await prisma.queue.findUnique({ where: { id }, include: {items: true } });
     res.json(q);
 }
 
