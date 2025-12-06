@@ -1,37 +1,59 @@
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
-
 
 datasource db {
-provider = "postgresql"
-url = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+model Customer {
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique
+  phone       String?
+  visitCount  Int         @default(1)
+  createdAt   DateTime    @default(now())
+  lastVisitAt DateTime    @updatedAt
+  queueItems  QueueItem[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  email     String   @unique
+  password  String
+  role      Role     @default(STAFF)
+  venueId   Int?
+  venue     Venue?   @relation(fields: [venueId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
 
 model Venue {
-id Int @id @default(autoincrement())
-name String
-queues Queue[]
+  id     Int     @id @default(autoincrement())
+  name   String
+  users  User[] // users related to this venue (staff/admin)
+  queues Queue[]
 }
-
 
 model Queue {
-id Int @id @default(autoincrement())
-name String
-venue Venue? @relation(fields: [venueId], references: [id])
-venueId Int?
-items QueueItem[]
-createdAt DateTime @default(now())
+  id      Int         @id @default(autoincrement())
+  venueId Int
+  venue   Venue       @relation(fields: [venueId], references: [id])
+  items   QueueItem[]
 }
 
-
 model QueueItem {
-id Int @id @default(autoincrement())
-queue Queue @relation(fields: [queueId], references: [id])
-queueId Int
-userName String
-position Int
-status String @default("waiting") // waiting | served | canceled
-joinedAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  queueId    Int
+  queue      Queue    @relation(fields: [queueId], references: [id])
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  status     String   @default("waiting") // waiting | served | canceled
+  createdAt  DateTime @default(now())
 }
