@@ -13,8 +13,21 @@ export async function createQueue(req: Request, res: Response){
 
 export async function getQueue(req: Request, res: Response){
     const id = Number(req.params.id);
-    const q = await prisma.queue.findUnique({ where: { id }, Include: {items: true } });
+    const q = await prisma.queue.findUnique({ where: { id }, include: {items: true } });
     res.json(q);
+}
+
+export async function joinQueue(req: Request, res: Response){
+    const queueId = Number(req.params.id);
+    const { userName } = req.body;
+    // compute position: max position + 1
+    const maxPos = await prisma.queueItem.aggregate({
+        where: { queueId },
+        _max: { position: true},
+    });
+    const pos = (maxPos._max.position ?? 0) + 1;
+    const item = await prisma.queueItem.create({ data : { queueId, userName, position: pos } });
+    res.json(item);
 }
 
 export async function serveNext(req: Request, res: Response){
