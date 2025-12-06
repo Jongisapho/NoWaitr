@@ -8,11 +8,29 @@ provider = "postgresql"
 url = env("DATABASE_URL")
 }
 
+enum Role {
+    CUSTOMER
+    ADMIN
+}
 
+model User {
+    id Int @id @default(autoincrement())
+    email String @unique
+    passwordHash String
+    name String?
+    role Role @default(CUSTOMER)
+    venue Venue? @relation(fields: [venueId], references: [id])
+    venueId Int?
+    createdAt DateTime @default(now())
+    // Must add session / refresh tokens
+
+}
 model Venue {
 id Int @id @default(autoincrement())
 name String
 queues Queue[]
+users User[] // users related to this venue (staff/admin)
+createdAt DateTime @default(now())
 }
 
 
