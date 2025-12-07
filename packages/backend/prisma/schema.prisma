@@ -1,37 +1,106 @@
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
-
 
 datasource db {
-provider = "postgresql"
-url = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
+model Customer {
+  id          Int             @id @default(autoincrement())
+  name        String
+  email       String          @unique
+  phone       String?
+  createdAt   DateTime        @default(now())
+  lastVisitAt DateTime? // Updated ONLY when checking into queue
+  queueItems  QueueItem[]
+  visits      CustomerVisit[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  email     String   @unique
+  password  String
+  role      Role     @default(STAFF)
+  venueId   Int?
+  venue     Venue?   @relation(fields: [venueId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
 
 model Venue {
-id Int @id @default(autoincrement())
-name String
-queues Queue[]
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?
+  qrCode      String?         @unique
+  users       User[]
+  queues      Queue[]
+  visits      CustomerVisit[]
+  createdAt   DateTime        @default(now())
 }
-
 
 model Queue {
-id Int @id @default(autoincrement())
-name String
-venue Venue? @relation(fields: [venueId], references: [id])
-venueId Int?
-items QueueItem[]
-createdAt DateTime @default(now())
+  id        Int         @id @default(autoincrement())
+  venueId   Int
+  venue     Venue       @relation(fields: [venueId], references: [id])
+  name      String      @default("Main Queue")
+  items     QueueItem[]
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+
+  @@unique([venueId, name])
 }
 
-
 model QueueItem {
-id Int @id @default(autoincrement())
-queue Queue @relation(fields: [queueId], references: [id])
-queueId Int
-userName String
-position Int
-status String @default("waiting") // waiting | served | canceled
-joinedAt DateTime @default(now())
+  id                   Int         @id @default(autoincrement())
+  queueId              Int
+  queue                Queue       @relation(fields: [queueId], references: [id])
+  customerId           Int
+  customer             Customer    @relation(fields: [customerId], references: [id])
+  partySize            Int         @default(1)
+  status               QueueStatus @default(WAITING) // waiting | serving | served | canceled
+  position             Int
+  estimatedWaitMinutes Int? // Store wait time in minutes instead
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@unique([queueId, position])
+  @@index([queueId, customerId])
+  @@index([queueId, status])
+}
+
+enum QueueStatus {
+  WAITING
+  SERVING
+  SERVED
+  CANCELED
+}
+
+model CustomerVisit {
+  id          Int      @id @default(autoincrement())
+  customerId  Int
+  customer    Customer @relation(fields: [customerId], references: [id])
+  venueId     Int
+  venue       Venue    @relation(fields: [venueId], references: [id])
+  visitCount  Int      @default(1)
+  lastVisitAt DateTime @default(now())
+
+  @@unique([customerId, venueId])
+}
+
+model EmailOTP {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
