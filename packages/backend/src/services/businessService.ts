@@ -41,6 +41,13 @@ async function createBranchWithUniqueSlug(prsma: Prisma.TransactionClient, data:
       candidates.push(`${initialSlug}-${n}`);
     }
 
+    let branchNormalisedEmail = null;
+
+    if(branchInput.email?.trim() !== "" && branchInput.email){
+      branchNormalisedEmail = normaliseEmail(branchInput.email);
+    }
+    
+
     for(const slug of candidates) {
         
         try {
@@ -52,7 +59,7 @@ async function createBranchWithUniqueSlug(prsma: Prisma.TransactionClient, data:
               slug,
               description: branchInput.description ?? null,
               contactPhone: branchInput.contactPhone ?? null,
-              email: branchInput.email ?? null,
+              email: branchNormalisedEmail ?? null,
               addressLine1: branchInput.addressLine1 ?? null,
               addressLine2: branchInput.addressLine2 ?? null,
               city: branchInput.city ?? null,
@@ -85,10 +92,11 @@ async function createBranchWithUniqueSlug(prsma: Prisma.TransactionClient, data:
 
 export async function registerBusinessService(payload: RegisterBusinessDTO): Promise<RegisterBusinessResult>{
 
-  const email = normaliseEmail(payload.adminUser.email);
+  const adminNormalisedEmail = normaliseEmail(payload.adminUser.email);
+  const businessNormalisedEmail = normaliseEmail(payload.business.contactEmail);
 
   const existingEmail = await prisma.user.findUnique({
-    where: {email}
+    where: {email: adminNormalisedEmail}
   });
 
   if(existingEmail){
@@ -118,7 +126,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
         name: payload.business.name,
         legalName: payload.business.legalName ?? null,
         registrationNumber: payload.business.registrationNumber ?? null,
-        contactEmail: payload.business.contactEmail,
+        contactEmail: businessNormalisedEmail,
         contactPhone: payload.business.contactPhone ?? null,
         website: payload.business.website ?? null,
         timezone: payload.business.timezone ?? "Africa/Johannesburg",
@@ -187,7 +195,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
     const createdUser = await prsma.user.create({
       data: {
         name: payload.adminUser.name ?? null,
-        email: payload.adminUser.email,
+        email: adminNormalisedEmail,
         password: hashedPw,
         role: Role.ADMIN,
         businessId: createdBusiness.id,
