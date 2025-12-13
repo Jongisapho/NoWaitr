@@ -53,6 +53,7 @@ model Business {
   branches           Branch[]
   settings           BusinessSettings?
 
+  users  User[]
   // Suggested indexes
   @@index([status])
   @@index([contactEmail])
@@ -144,9 +145,15 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(STAFF)
+  businessId Int? //only set for Admins
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branchId  Int?
   branch    Branch?  @relation(fields: [branchId], references: [id])
   createdAt DateTime @default(now())
+  @@index([role])
+  @@index([businessId])
+  @@index([branchId])
+
 }
 
 model Queue {
@@ -183,7 +190,7 @@ enum QueueStatus {
   WAITING
   SERVING
   SERVED
-  CANCELEDq
+  CANCELED
 }
 
 model CustomerVisit {
