@@ -7,6 +7,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/**
+ * ************************************************Enums****************************************
+ */
+enum BusinessStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+/**
+ * ************************************************Tables****************************************
+ */
+model Business {
+  id                 Int               @id @default(autoincrement())
+  name               String
+  legalName          String?
+  registrationNumber String?           @unique
+  contactEmail       String
+  contactPhone       String?
+  website            String?
+  timezone           String            @default("Africa/Johannesburg")
+  preferredLanguage  String            @default("en")
+  status             BusinessStatus    @default(ACTIVE)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  statusUpdatedAt    DateTime?
+  // Relations
+  branches           Branch[]
+  settings           BusinessSettings?
+
+  users  User[]
+  // Suggested indexes
+  @@index([status])
+  @@index([contactEmail])
+}
+
+model BusinessSettings {
+  id            Int   @id @default(autoincrement())
+  businessId    Int   @unique
+  // Store arbitrary default config (branding, queue defaults)
+  defaults      Json?
+  //Email configuration and Push notifications in future
+  notifications Json?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Branch {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  name         String
+  code         String // short identifier per business
+  slug         String // URL-friendly identifier per business: eg https://waitr.com/slug - (businessName/branchName)
+  description  String?
+  contactPhone String?
+  email        String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  province     String?
+  postalCode   String?
+  country      String?  @default("ZA")
+  timezone     String? // overrides business timezone
+  isDefault    Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  operatingHours BranchOperatingHours[]
+  settings       BranchSettings?
+
+  users  User[]
+  queues Queue[]
+  visits CustomerVisit[]
+
+  // Constraints / Indexes
+  @@unique([businessId, code]) // prevents duplicate short codes per business
+  @@unique([businessId, slug]) // Unique URL slug per branch
+  @@index([businessId, isActive])
+}
+
+model BranchSettings {
+  id            Int    @id @default(autoincrement())
+  branchId      Int    @unique
+  overrides     Json? // per-branch overrides of business defaults
+  notifications Json? // branch-specific notification overrides/templates
+  branch        Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model BranchOperatingHours {
+  id        Int       @id @default(autoincrement())
+  branchId  Int
+  day       DayOfWeek
+  openTime  String? // "08:00" 24h format; null means closed
+  closeTime String? // "17:00"
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, day]) // one row per day
+  @@index([branchId])
+}
+
 model Customer {
   id          Int             @id @default(autoincrement())
   name        String
@@ -24,37 +145,27 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(STAFF)
-  venueId   Int?
-  venue     Venue?   @relation(fields: [venueId], references: [id])
+  businessId Int? //only set for Admins
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId  Int?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
   createdAt DateTime @default(now())
-}
+  @@index([role])
+  @@index([businessId])
+  @@index([branchId])
 
-enum Role {
-  ADMIN
-  STAFF
-}
-
-model Venue {
-  id          Int             @id @default(autoincrement())
-  name        String
-  description String?
-  qrCode      String?         @unique
-  users       User[]
-  queues      Queue[]
-  visits      CustomerVisit[]
-  createdAt   DateTime        @default(now())
 }
 
 model Queue {
   id        Int         @id @default(autoincrement())
-  venueId   Int
-  venue     Venue       @relation(fields: [venueId], references: [id])
+  branchId  Int
+  branch    Branch      @relation(fields: [branchId], references: [id])
   name      String      @default("Main Queue")
   items     QueueItem[]
   isActive  Boolean     @default(true)
   createdAt DateTime    @default(now())
 
-  @@unique([venueId, name])
+  @@unique([branchId, name])
 }
 
 model QueueItem {
@@ -86,12 +197,12 @@ model CustomerVisit {
   id          Int      @id @default(autoincrement())
   customerId  Int
   customer    Customer @relation(fields: [customerId], references: [id])
-  venueId     Int
-  venue       Venue    @relation(fields: [venueId], references: [id])
+  branchId    Int
+  branch      Branch   @relation(fields: [branchId], references: [id])
   visitCount  Int      @default(1)
   lastVisitAt DateTime @default(now())
 
-  @@unique([customerId, venueId])
+  @@unique([customerId, branchId])
 }
 
 model EmailOTP {

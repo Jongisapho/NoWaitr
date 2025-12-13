@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRESS_DB: no_waitr
+      POSTGRES_DB: no_waitr
     ports:
       - "5432:5432"
     volumes:
