@@ -21,7 +21,7 @@ export const sendOTPEmail = async (to: string, code: string) => {
         <p>Your one-time verification code is:</p>
         <h1 style="letter-spacing: 4px;">${code}</h1>
         <p>This code expires in <b>5 minutes</b>.</p>
-        <p>If you didn’t request this, ignore this email.</p>
+        <p>If you did not request this, ignore this email.</p>
       </div>
     `
   };
