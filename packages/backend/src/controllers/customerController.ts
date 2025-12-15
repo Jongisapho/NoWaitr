@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { registerCustomerSchema, verifyOTPSchema } from "../validators/registerCustomer.schema";
 import { registerCustomerService, verifyOTPService } from "../services/customerService";
 import z from "zod";
+import { sendWelcomeEmail } from "../services/emailService";
+import { prisma } from "../prisma";
 
 export const registerCustomer = async (req: Request, res: Response) => {
   const parsed = registerCustomerSchema.safeParse(req.body);
@@ -35,7 +37,16 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
   try {
     await verifyOTPService(parsed.data.email, parsed.data.code);
-    return res.json({ message: "Email verified successfully" });
+
+    const normalizedEmail = parsed.data.email;
+    const customer = await prisma.customer.findUnique({
+      where: { email: normalizedEmail },
+      select: { name: true },
+    });
+
+    await sendWelcomeEmail(normalizedEmail, customer?.name || "there");
+
+    return res.json({ message: "Email verified successfully! Welcome email sent. " });
   } catch (err: any) {
     if (err?.status === 400) {
       return res.status(400).json({ error: err.message });
