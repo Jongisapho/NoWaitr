@@ -1,13 +1,9 @@
 import { Router } from "express";
-import {
-    verifyOTP,
-    registerCustomer
-} from "../controllers/customerController";
-
+import { registerCustomer, verifyOTP } from "../controllers/customerController";
 
 const router = Router();
 
-router.post("/registerCustomer", registerCustomer);
-router.post("/otp/verify", verifyOTP);
+router.post("/register", registerCustomer);
+router.post("/verify-otp", verifyOTP);
 
 export default router;
