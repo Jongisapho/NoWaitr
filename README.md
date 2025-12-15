@@ -25,7 +25,7 @@
 | **Backend**         | <img src="https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png" width="24"/> Node.js (Express) | High-throughput API handling |
 | **Database**        | <img src="https://raw.githubusercontent.com/github/explore/main/topics/postgresql/postgresql.png" width="24"/> PostgreSQL | Reliable relational database for queue management |
 | **ORM**.            | <img src="https://raw.githubusercontent.com/github/explore/main/topics/prisma/prisma.png" width="24"/> Prisma | Type-safe database client and migrations |
-| **Containerization  | <img src="https://raw.githubusercontent.com/github/explore/main/topics/docker/docker.png" width="24"/> Docker | Consistent development and deployment environment
+| **Containerization**  | <img src="https://raw.githubusercontent.com/github/explore/main/topics/docker/docker.png" width="24"/> Docker | Consistent development and deployment environment
 
 ## 👨🏻‍💻 How to Run the project
 **1️⃣ Clone the repository**
