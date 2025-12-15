@@ -14,16 +14,50 @@ export const sendOTPEmail = async (to: string, code: string) => {
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
-    subject: "Your NoWaitr Verification Code",
+    subject: "NoWaitr OTP Verification Code",
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2 style="color: #e7610eff;">Your Verification Code</h2>
+        <h2 style="color: #ff6200ff;">Your Verification Code</h2>
         <p>Your one-time verification code is:</p>
-        <h1 style="letter-spacing: 4px;">${code}</h1>
+        <h1 style="letter-spacing: 4px; color: #000000ff">${code}</h1>
         <p>This code expires in <b>5 minutes</b>.</p>
-        <p>If you didn’t request this, ignore this email.</p>
+        <p>If you did not request this, ignore this email.</p>
       </div>
     `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+export const sendWelcomeEmail = async (to: string, name: string) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: "Welcome to NoWaitr ! Your email has been verified ✅",
+    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #ff6200ff; text-align: center;">Welcome to NoWaitr, ${name || 'there'}!</h2>
+        <p style="font-size: 16px; color: #333;">
+          Great news — your email <strong>${to}</strong> has been successfully verified.
+        </p>
+        <p style="font-size: 16px; color: #333;">
+          You're now ready to:
+        </p>
+        <ul style="font-size: 16px; color: #333;">
+          <li>Join virtual queues at your favorite restaurants</li>
+          <li>Get notified when it's your turn</li>
+          <li>Skip the long waits!</li>
+        </ul>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://NoWaitr.com" 
+             style="background-color: #ff6200ff; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Open NoWaitr App
+          </a>
+        </div>
+        <p style="font-size: 14px; color: #777; text-align: center;">
+          Questions? Just reply to this email — we're here to help!<br>
+          The NoWaitr Team
+        </p>
+      </div>`
   };
 
   await transporter.sendMail(mailOptions);

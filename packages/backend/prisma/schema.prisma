@@ -207,7 +207,7 @@ model CustomerVisit {
 
 model EmailOTP {
   id        Int      @id @default(autoincrement())
-  email     String
+  email     String   @unique
   code      String
   expiresAt DateTime
   verified  Boolean  @default(false)
