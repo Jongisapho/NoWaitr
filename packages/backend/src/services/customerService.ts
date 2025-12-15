@@ -4,6 +4,7 @@ import { RegisterCustomerDTO } from '../validators/registerCustomer.schema';
 import { CustomerResult } from '../interfaces/customerRegisterTypes';
 import { sendOTPEmail } from './emailService';
 import { normaliseEmail } from '../utils/strings';
+import { generateOTPCode } from '../utils/strings';
 
 export async function registerCustomerService(
     payload: RegisterCustomerDTO
@@ -34,7 +35,7 @@ export async function registerCustomerService(
     }
 
     // Generate and send OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = generateOTPCode();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
     await prisma.emailOTP.upsert({

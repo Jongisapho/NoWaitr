@@ -18,3 +18,7 @@ export function timeToMinutes(t: string): number {
 export function normaliseEmail(email: string): string{
   return email.trim().toLowerCase();
 }
+
+export function generateOTPCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
