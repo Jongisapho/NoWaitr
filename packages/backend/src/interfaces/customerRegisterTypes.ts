@@ -8,6 +8,17 @@ export interface CustomerResult {
     isReturningCustomer: boolean;
 }
 
+export interface CustomerLoginRessponse {
+    message: string;
+    token: string;
+    customer: {
+        id: number;
+        name: string | null;
+        email: string;
+        phone: string | null;
+    };
+}
+
 export interface VerifyOTPResult {
     message: string;
 }
