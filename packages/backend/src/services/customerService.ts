@@ -8,6 +8,10 @@ import { normaliseEmail } from '../utils/strings';
 import { generateOTPCode } from '../utils/strings';
 import jwt from 'jsonwebtoken';
 
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
+
 export async function registerCustomerService(
     payload: RegisterCustomerDTO
 ): Promise<CustomerResult> {
@@ -18,7 +22,7 @@ export async function registerCustomerService(
     });
 
     const isReturning = !!customer;
-    if(!customer){
+    if (!customer) {
         customer = await prisma.customer.create({
             data: {
                 name: payload.name.trim(),
@@ -28,7 +32,7 @@ export async function registerCustomerService(
         });
     } else {
         customer = await prisma.customer.update({
-            where: {id: customer.id},
+            where: { id: customer.id },
             data: {
                 name: payload.name.trim(),
                 phone: payload.phone?.trim() || null,
@@ -41,7 +45,7 @@ export async function registerCustomerService(
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
     await prisma.emailOTP.upsert({
-        where: {email: normalizedEmail},
+        where: { email: normalizedEmail },
         update: {
             code,
             expiresAt,
@@ -68,27 +72,44 @@ export async function registerCustomerService(
     };
 }
 
-export async function verifyOTPService(email: string, code: string): Promise<void>{
+export async function verifyOTPService(email: string, code: string): Promise<CustomerLoginResponse['customer']> {
     const normalizedEmail = normaliseEmail(email);
 
     const otpRecord = await prisma.emailOTP.findFirst({
         where: {
             email: normalizedEmail,
-            code, 
+            code,
             verified: false,
-            expiresAt: { gt: new Date()},
+            expiresAt: { gt: new Date() },
         },
-        orderBy: { createdAt: 'desc'},
+        orderBy: { createdAt: 'desc' },
     });
 
-    if(!otpRecord){
+    if (!otpRecord) {
         const err = new Error('Invalid or expired OTP');
-        (err as any ).status = 400;
+        (err as any).status = 400;
         throw err;
     }
 
     await prisma.emailOTP.update({
-        where : {id: otpRecord.id},
-        data: {verified: true},
+        where: { id: otpRecord.id },
+        data: { verified: true },
     });
+
+    const customer = await prisma.customer.findUnique({
+        where: { email: normalizedEmail },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+        },
+    });
+
+    if(!customer){
+        const err = new Error('Customer not found');
+        (err as any).status = 500;
+        throw err;
+    }
+    return customer ;
 }

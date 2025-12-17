@@ -8,7 +8,7 @@ export interface CustomerResult {
     isReturningCustomer: boolean;
 }
 
-export interface CustomerLoginRessponse {
+export interface CustomerLoginResponse {
     message: string;
     token: string;
     customer: {
