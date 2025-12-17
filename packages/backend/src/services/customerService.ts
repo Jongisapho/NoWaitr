@@ -2,9 +2,11 @@ import bcrypt from 'bcrypt';
 import { prisma } from '../prisma';
 import { RegisterCustomerDTO } from '../validators/registerCustomer.schema';
 import { CustomerResult } from '../interfaces/customerRegisterTypes';
+import { CustomerLoginResponse } from '../interfaces/customerRegisterTypes';
 import { sendOTPEmail } from './emailService';
 import { normaliseEmail } from '../utils/strings';
 import { generateOTPCode } from '../utils/strings';
+import jwt from 'jsonwebtoken';
 
 export async function registerCustomerService(
     payload: RegisterCustomerDTO
