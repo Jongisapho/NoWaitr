@@ -62,3 +62,38 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
 
   await transporter.sendMail(mailOptions);
 };
+
+export const sendRegistrationEmail = async (to: string, link: string) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: "NoWaitr Registration Link",
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; max-width: 500px;">
+        <h2 style="color: #ff6200; margin-bottom: 10px;">Your Registration Link</h2>
+        <p>Hello,</p>
+        <p>Your profile has been created. Please click the button below to complete your registration:</p>
+        <a href="${link}" 
+           style="display: inline-block;
+                  background-color: #ff6200;
+                  color: white;
+                  padding: 12px 20px;
+                  text-decoration: none;
+                  border-radius: 5px;
+                  font-weight: bold;
+                  margin: 20px 0;
+                  letter-spacing: 1px;">
+          Complete Registration
+        </a>
+        <p>If the button doesn’t work, copy and paste the link below into your browser:</p>
+        <p style="word-break: break-all;">
+          <a href="${link}" style="color: #ff6200;">${link}</a>
+        </p>
+        <p>This link expires in <b>48 hours</b>.</p>
+        <p>Best regards,<br>NoWaitr Team</p>
+      </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};

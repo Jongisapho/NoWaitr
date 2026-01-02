@@ -85,3 +85,14 @@ export interface RegisterBusinessResult {
         role: Role;
     };
 }
+
+export interface RegisterBranchResult{
+  branch: {
+    id: number;
+    name: string;
+    slug: string;
+    code: string;
+    isDefault: boolean;
+    isActive: boolean;
+  };
+}
