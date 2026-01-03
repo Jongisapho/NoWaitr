@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { TIME_REGEX, timeToMinutes } from "../utils/strings";
+import { adminRegisterSchema } from "./user.schema";
 
 //Enums
 const BusinessStatus = z.enum(["ACTIVE", "SUSPENDED", "ARCHIVED"]);
 const DayOfWeek = z.enum(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]);
-const Role = z.enum(["ADMIN", "MANAGER", "STAFF"]);
 
 //models
 const businessSettingsSchema = z.object({
@@ -86,18 +86,12 @@ export const branchSchema = z.object({
   settings: branchSettingsSchema,
 });
 
-export const adminUserSchema = z.object({
-  name: z.string().optional(),
-  email: z.email("Invalid admin email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  role: Role.default("ADMIN").optional(),
-});
-
 export const registerBusinessSchema = z.object({
   business: businessSchema,
   branch: branchSchema,
-  adminUser: adminUserSchema,
+  adminUser: adminRegisterSchema,
 });
 
 export type RegisterBusinessDTO = z.infer<typeof registerBusinessSchema>;
+export type RegisterBranchDTO = z.infer<typeof branchSchema>;
 

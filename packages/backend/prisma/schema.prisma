@@ -32,6 +32,13 @@ enum Role {
   STAFF
 }
 
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DEACTIVATED
+}
+
+
 /**
  * ************************************************Tables****************************************
  */
@@ -143,17 +150,54 @@ model User {
   id        Int      @id @default(autoincrement())
   name      String?
   email     String   @unique
-  password  String
+  password  String?
   role      Role     @default(STAFF)
   businessId Int? //only set for Admins
   business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   branchId  Int?
   branch    Branch?  @relation(fields: [branchId], references: [id])
+  status    UserStatus @default(INVITED)
+  invitedAt DateTime?
+  emailVerifiedAt DateTime?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  invitations     InvitationToken[]
+  //otps   EmailOTP[]
+  passwordResets  PasswordResetToken[]
+
   @@index([role])
   @@index([businessId])
   @@index([branchId])
+  @@index([status])
+}
 
+model InvitationToken {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  consumedAt DateTime?
+
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  consumedAt DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Queue {

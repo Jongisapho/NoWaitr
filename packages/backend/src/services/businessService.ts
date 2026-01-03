@@ -1,16 +1,26 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../prisma';
-import { BusinessStatus, DayOfWeek, Role } from '@prisma/client';
-import { RegisterBusinessDTO } from '../validators/registerBusiness.schema';
-import { toSlug, normaliseEmail } from '../utils/strings';
-import { RegisterBusinessResult } from '../interfaces/businessRegisterTypes';
+import { BusinessStatus, DayOfWeek, Role, UserStatus } from '@prisma/client';
+import { RegisterBusinessDTO, RegisterBranchDTO } from '../validators/registerBusiness.schema';
+import { toSlug, normaliseEmail, buildSlugCandidates } from '../utils/strings';
+import { RegisterBusinessResult, RegisterBranchResult } from '../interfaces/businessRegisterTypes';
 import { Prisma } from '@prisma/client';
+import { passwordHasher } from './passwordEncryptionService';
 
 
 type OperatingHour = {
   day: DayOfWeek;
   openTime: string | null;
   closeTime: string | null;
+};
+
+type BranchRow = {
+  id: number;
+  name: string;
+  code: string;
+  slug: string;
+  isDefault: boolean;
+  isActive: boolean;
 };
 
 type branchData = { 
@@ -32,68 +42,63 @@ function defaultOperatingHours(): OperatingHour[] {
 }
 
 
-async function createBranchWithUniqueSlug(prsma: Prisma.TransactionClient, data: branchData ){
+async function createBranchWithUniqueSlug(prsmaTransaction: Prisma.TransactionClient, data: branchData ): Promise<BranchRow>{
     const {businessId, branchInput, initialSlug} = data;
 
     //Create an array of potential slugs to use for branch
-    const candidates = [initialSlug];
-    for (let n = 2; n <= 50; n++) {
-      candidates.push(`${initialSlug}-${n}`);
-    }
+    const candidates = buildSlugCandidates(initialSlug, 50);
 
     let branchNormalisedEmail = null;
 
     if(branchInput.email?.trim() !== "" && branchInput.email){
       branchNormalisedEmail = normaliseEmail(branchInput.email);
     }
-    
 
     for(const slug of candidates) {
         
-        try {
-          const createdBranch = await prsma.branch.create({
-            data: {
-              businessId,
-              name: branchInput.name,
-              code: branchInput.code,
-              slug,
-              description: branchInput.description ?? null,
-              contactPhone: branchInput.contactPhone ?? null,
-              email: branchNormalisedEmail ?? null,
-              addressLine1: branchInput.addressLine1 ?? null,
-              addressLine2: branchInput.addressLine2 ?? null,
-              city: branchInput.city ?? null,
-              province: branchInput.province ?? null,
-              postalCode: branchInput.postalCode ?? null,
-              country: branchInput.country ?? "ZA",
-              timezone: branchInput.timezone ?? null,
-              isDefault: branchInput.isDefault ?? true,
-              isActive: true,
-            },
-          });
-          return createdBranch;
-        } catch (err: any) {
-          if (err?.code === "P2002") {
-            const target = err?.meta?.target;
-
-            if (Array.isArray(target) && target.includes("businessId_slug")) {
-              continue; // try next slug candidate
-            }
-            if (Array.isArray(target) && target.includes("businessId_code")) {
-              throw err; // code conflict won't be solved by slug change
-            }
-          }
-          throw err;
-        }
+        
+      const rows = await prsmaTransaction.$queryRaw<BranchRow[]>`
+      INSERT INTO "Branch" (
+        "businessId","name","code","slug","description","contactPhone","email",
+        "addressLine1","addressLine2","city","province","postalCode","country",
+        "timezone","isDefault","isActive","createdAt","updatedAt"
+      )
+      VALUES (
+        ${businessId}, ${branchInput.name}, ${branchInput.code}, ${slug},
+        ${branchInput.description ?? null}, ${branchInput.contactPhone ?? null},
+        ${branchNormalisedEmail},
+        ${branchInput.addressLine1 ?? null}, ${branchInput.addressLine2 ?? null},
+        ${branchInput.city ?? null}, ${branchInput.province ?? null},
+        ${branchInput.postalCode ?? null}, ${branchInput.country ?? 'ZA'},
+        ${branchInput.timezone ?? null}, ${branchInput.isDefault ?? false},
+        ${true}, NOW(), NOW()
+      )
+      ON CONFLICT ("businessId","slug") DO NOTHING
+      RETURNING "id","name","code","slug","isDefault","isActive";
+    `;
+    if (rows.length === 1) {
+      // Successfully inserted a unique slug
+      return rows[0];
     }
 
-    throw new Error("Unable to generate a unique slug for branch");
+  }
+
+  const err = new Error('Unable to generate a unique slug for branch');
+    (err as any).status =  (err as any).status = 409;
+    (err as any).fields = ['slug'];
+    throw err;
+
 }
 
 export async function registerBusinessService(payload: RegisterBusinessDTO): Promise<RegisterBusinessResult>{
 
-  const adminNormalisedEmail = normaliseEmail(payload.adminUser.email);
-  const businessNormalisedEmail = normaliseEmail(payload.business.contactEmail);
+  let adminNormalisedEmail = undefined;
+
+  if(payload.adminUser.email?.trim() !== "" && payload.adminUser.email){
+    adminNormalisedEmail = normaliseEmail(payload.adminUser.email);
+  }
+
+  let businessNormalisedEmail = normaliseEmail(payload.business.contactEmail);
 
   const existingEmail = await prisma.user.findUnique({
     where: {email: adminNormalisedEmail}
@@ -117,11 +122,12 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
   }))?? defaultOperatingHours();
 
   const initialSlug = (payload.branch.slug && payload.branch.slug.trim()) || toSlug(`${payload.business.name} - ${payload.branch.name}`);
-
-  return prisma.$transaction(async (prsma) => {
+  //hash admin pw
+  const hashedPw = await passwordHasher.hash(payload.adminUser.password);
+  return prisma.$transaction(async (prsmaTransaction) => {
     
     // 1) Create Business
-    const createdBusiness = await prsma.business.create({
+    const createdBusiness = await prsmaTransaction.business.create({
       data: {
         name: payload.business.name,
         legalName: payload.business.legalName ?? null,
@@ -139,7 +145,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
     
     // 2) BusinessSettings (optional)
     if (payload.business.settings) {
-      await prsma.businessSettings.create({
+      await prsmaTransaction.businessSettings.create({
         data: {
           businessId: createdBusiness.id,
           defaults: payload.business.settings.defaults ?? undefined,
@@ -150,7 +156,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
 
     
     // 3) Branch (ensure unique slug)
-    const branchRecord = await createBranchWithUniqueSlug(prsma, {
+    const branchRecord = await createBranchWithUniqueSlug(prsmaTransaction, {
       businessId: createdBusiness.id,
       branchInput: payload.branch,
       initialSlug,
@@ -159,7 +165,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
     
     // 4) Operating hours
     for (const oh of operatinghours) {
-      await prsma.branchOperatingHours.create({
+      await prsmaTransaction.branchOperatingHours.create({
         data: {
           branchId: branchRecord.id,
           day: oh.day,
@@ -171,7 +177,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
 
     // 5) BranchSettings (optional)
     if (payload.branch.settings) {
-      await prsma.branchSettings.create({
+      await prsmaTransaction.branchSettings.create({
         data: {
           branchId: branchRecord.id,
           overrides: payload.branch.settings.overrides ?? undefined,
@@ -182,7 +188,7 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
 
     
   // 6) Default Queue
-    await prsma.queue.create({
+    await prsmaTransaction.queue.create({
       data: {
         branchId: branchRecord.id,
         name: "Main Queue",
@@ -191,19 +197,21 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
     });
 
     // 7) Admin user
-    const hashedPw = await bcrypt.hash(payload.adminUser.password, 12);
-    const createdUser = await prsma.user.create({
+    
+    const createdUser = await prsmaTransaction.user.create({
       data: {
         name: payload.adminUser.name ?? null,
-        email: adminNormalisedEmail,
+        email: adminNormalisedEmail?? "",
         password: hashedPw,
         role: Role.ADMIN,
         businessId: createdBusiness.id,
-        branchId: null
+        branchId: null,
+        status: UserStatus.ACTIVE,
+        invitedAt: null,
+        emailVerifiedAt: new Date()
       },
     });
 
-    
     return {
       business: {
         id: createdBusiness.id,
@@ -227,8 +235,105 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
 
   })
 
-
 }
 
+export async function registerBranchService(businessID: number, payload: RegisterBranchDTO): Promise<RegisterBranchResult>{
+
+  //Check if branch doesn't already exist in db
+  const existingBranch = await prisma.branch.findUnique({
+    where: {
+      businessId_code: {
+        businessId: businessID,
+        code: payload.code,
+      },
+    }
+  })
+
+  //If branch exists throw error
+  if(existingBranch){
+    const err = new Error("Branch with this code already exists for this business.");
+    (err as any).status = 409;
+    (err as any).fields = ["code"];
+
+    throw err;
+  }
+
+  // Ensure business exists and get its name
+  const businessName = await prisma.business.findUnique({
+    where: { id: businessID },
+    select: { name: true },
+  });
+
+  if(!businessName){
+    const err = new Error("Business does not exist.");
+    (err as any).status = 404;
+    (err as any).fields = ["id"];
+
+    throw err;
+  }
+  
+  //set intital slug
+  const initialSlug = (payload.slug && payload.slug.trim()) || toSlug(`${businessName} - ${payload.name}`);
+
+  //set operating hours
+  const operatinghours = payload.operatingHours?.map((h) => ({
+    day: h.day as DayOfWeek,
+    openTime: h.openTime?? null,
+    closeTime: h.closeTime?? null
+  }))?? defaultOperatingHours();
+
+  //Create Branch
+  return prisma.$transaction(async (prsmaTransaction) => {
+    const branchRecord = await createBranchWithUniqueSlug(prsmaTransaction, {
+      businessId: businessID,
+      branchInput: payload,
+      initialSlug,
+    });
+
+    // Operating hours
+    for (const oh of operatinghours) {
+      await prsmaTransaction.branchOperatingHours.create({
+        data: {
+          branchId: branchRecord.id,
+          day: oh.day,
+          openTime: oh.openTime,
+          closeTime: oh.closeTime,
+        },
+      });
+    }
+
+    //BranchSettings (optional)
+    if (payload.settings) {
+      await prsmaTransaction.branchSettings.create({
+        data: {
+          branchId: branchRecord.id,
+          overrides: payload.settings.overrides ?? undefined,
+          notifications: payload.settings.notifications ?? undefined,
+        },
+      });
+    }
+
+    // Default Queue
+    await prsmaTransaction.queue.create({
+      data: {
+        branchId: branchRecord.id,
+        name: "Main Queue",
+        isActive: true,
+      },
+    });
+    
+    return{ 
+      branch: {
+        id: branchRecord.id,
+        name: branchRecord.name,
+        slug: branchRecord.slug,
+        code: branchRecord.code,
+        isDefault: branchRecord.isDefault,
+        isActive: branchRecord.isActive,
+      }
+    }
+  });
+   
+}
 
 

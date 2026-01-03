@@ -1,11 +1,10 @@
 import { Router } from "express";
-import {
-    registerBusiness
-} from "../controllers/businessController";
+import {registerBusiness, registerBranch} from "../controllers/businessController";
 
 
 const router = Router();
 
 router.post("/registerBusiness", registerBusiness);
+router.post("/:id/registerBranch", registerBranch);
 
 export default router;
