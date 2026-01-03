@@ -14,7 +14,7 @@ export const userBaseSchema = z.object({
 export type UserBaseDTO = z.infer<typeof userBaseSchema>;
 
 /* ---------- Register (requires password) ---------- */
-export const userRegisterSchema = userBaseSchema.extend({
+export const userRegisterSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 export type UserRegisterDTO = z.infer<typeof userRegisterSchema>;

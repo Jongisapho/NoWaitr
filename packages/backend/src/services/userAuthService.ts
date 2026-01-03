@@ -96,8 +96,8 @@ export async function userRegistrationInvite(userData: userData) : Promise<void>
     }
 
     if(!inviteToken){
-        const err = new Error('Invalid Invite token');
-        (err as any).status = 500;
+        const err = new Error('Invalid or missing token (0.2');
+        (err as any).status = 400;
         throw err;
     }
 
@@ -115,7 +115,7 @@ export async function validateToken(token: string): Promise<tokenValidationResul
 
     
     if (!token || !token.trim()) {
-        const err: any = new Error("Invalid or missing token(0.2).");
+        const err: any = new Error("Invalid or missing token(0.3).");
         err.status = 400;
         throw err;
     }
@@ -128,21 +128,21 @@ export async function validateToken(token: string): Promise<tokenValidationResul
     });
 
     if(!tokenDetails){
-        const err = new Error('token does not exist');
+        const err = new Error('Token does not exist.');
         (err as any).status = 404;
         throw err;
     }
 
     if (tokenDetails.consumedAt) {
-        const err: any = new Error("Token already used");
+        const err: any = new Error("Token already used.");
         err.status = 410;
         throw err;
     }
 
     const now = new Date();
     if(tokenDetails.expiresAt < now){
-        const err = new Error('token Expired.');
-        (err as any).status = 410; //gone
+        const err = new Error('Token Expired.');
+        (err as any).status = 410;
         throw err;
     }
 
@@ -165,7 +165,7 @@ export async function registerUser(input: RegisterInput):Promise<userRegistratio
     const {token, password} = input;
 
     if (!token || !token.trim()) {
-        const err: any = new Error("Invalid or missing token");
+        const err: any = new Error("Invalid or missing token(0.4)");
         err.status = 400;
         throw err;
     }
@@ -181,7 +181,7 @@ export async function registerUser(input: RegisterInput):Promise<userRegistratio
         });
 
         if(!tokenDetails){
-            const err = new Error('token does not exist');
+            const err = new Error('Token does not exist');
             (err as any).status = 404;
             throw err;
         }
@@ -194,7 +194,7 @@ export async function registerUser(input: RegisterInput):Promise<userRegistratio
 
         const now = new Date(Date.now());
         if(tokenDetails.expiresAt < now){
-            const err = new Error('token Expired.');
+            const err = new Error('Token Expired.');
             (err as any).status = 410; //gone
             throw err;
         }

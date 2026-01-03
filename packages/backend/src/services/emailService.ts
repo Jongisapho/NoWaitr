@@ -85,7 +85,7 @@ export const sendRegistrationEmail = async (to: string, link: string) => {
                   letter-spacing: 1px;">
           Complete Registration
         </a>
-        <p>If the button doesn’t work, copy and paste the link below into your browser:</p>
+        <p>If the button doesn’t work, click or copy and paste the link below into your browser:</p>
         <p style="word-break: break-all;">
           <a href="${link}" style="color: #ff6200;">${link}</a>
         </p>

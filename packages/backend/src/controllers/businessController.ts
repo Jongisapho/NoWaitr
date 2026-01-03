@@ -62,7 +62,6 @@ export const registerBusiness = async (req: Request, res: Response) => {
 
 export const registerBranch = async(req: Request, res: Response) =>{
 
-  
 const businessID = Number(req.params.id);
   if (!Number.isFinite(businessID) || businessID <= 0) {
     return res.status(400).json({
@@ -133,13 +132,4 @@ const businessID = Number(req.params.id);
     });
   }
 
-}
-
-export const registerStaff = async (req: Request, res: Response) => {
-    try{
-        
-    }
-    catch(err: any){ 
-
-    }
 }
