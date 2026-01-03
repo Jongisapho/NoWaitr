@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../prisma';
-import { BusinessStatus, DayOfWeek, Role } from '@prisma/client';
+import { BusinessStatus, DayOfWeek, Role, UserStatus } from '@prisma/client';
 import { RegisterBusinessDTO, RegisterBranchDTO } from '../validators/registerBusiness.schema';
 import { toSlug, normaliseEmail, buildSlugCandidates } from '../utils/strings';
 import { RegisterBusinessResult, RegisterBranchResult } from '../interfaces/businessRegisterTypes';
@@ -205,11 +205,13 @@ export async function registerBusinessService(payload: RegisterBusinessDTO): Pro
         password: hashedPw,
         role: Role.ADMIN,
         businessId: createdBusiness.id,
-        branchId: null
+        branchId: null,
+        status: UserStatus.ACTIVE,
+        invitedAt: null,
+        emailVerifiedAt: new Date()
       },
     });
 
-    
     return {
       business: {
         id: createdBusiness.id,
